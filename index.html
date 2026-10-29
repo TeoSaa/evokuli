@@ -35,6 +35,10 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .topic[aria-pressed="true"]{border-color:var(--ink)}
 .mode{flex:1 1 150px;border:none;border-radius:14px;padding:12px;background:var(--panel);border-bottom:4px solid var(--line);font-weight:700}
 .mode[aria-pressed="true"]{background:var(--gold);color:#172033;border-bottom-color:#b88900}
+.lvl{flex:1 1 110px;border:2px solid var(--c);border-radius:14px;padding:10px;background:var(--panel);font-weight:700}
+.lvl[aria-pressed="true"]{background:var(--c);color:#fff}
+.lvl small{display:block;font-weight:400;font-size:.8rem;opacity:.85}
+.timer{text-align:center;font-family:var(--display);font-size:1.2rem;color:var(--red);margin:-8px 0 8px;font-variant-numeric:tabular-nums}
 .panel{background:var(--panel);border-radius:20px;padding:22px;min-height:340px;border:2px solid var(--line)}
 .card{perspective:900px;height:230px;max-width:440px;margin:0 auto;cursor:pointer}
 .card-in{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
@@ -80,12 +84,20 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   </header>
   <section><p class="label">Ders seç</p><div class="subjects" id="subjects"></div></section>
   <section><p class="label">Konu</p><div class="row" id="topics"></div></section>
+  <section><p class="label">Zorluk</p><div class="row" id="levels"></div></section>
   <section><p class="label">Aktivite</p><div class="row" id="modes"></div></section>
   <section class="panel" id="panel"></section>
 </div>
 
 <script>
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const LEVELS=[
+  {name:"🟢 Kolay",info:"2 şık · 6 soru",color:"var(--ok)",opts:2,q:6,pairs:4,mult:1},
+  {name:"🟡 Orta",info:"4 şık · 8 soru",color:"#c98a00",opts:4,q:8,pairs:6,mult:1},
+  {name:"🔴 Zor",info:"6 şık · 10 soru · 10 sn",color:"var(--red)",opts:6,q:10,pairs:8,time:10,mult:2}];
+let lv=1;try{const v=localStorage.getItem("ev-lv");if(v!=null&&LEVELS[+v])lv=+v}catch(e){}
+const LV=()=>LEVELS[lv], R=(e,m,h)=>[e,m,h][lv];
+let timer=null;
 // unique-answer generator helper for math
 function gen(make,n=12){const out=[],seen=new Set();let tries=0;while(out.length<n&&tries++<500){const [q,a]=make();if(!seen.has(a)){seen.add(a);out.push([q,"",String(a)])}}return out}
 
@@ -121,17 +133,17 @@ const SUBJECTS={
   "Kalıp cümleler":[["How are you?","","Nasılsın?"],["What's your name?","","Adın ne?"],["How old are you?","","Kaç yaşındasın?"],["Where are you from?","","Nerelisin?"],["I don't know","","Bilmiyorum"],["Can I help you?","","Yardım edebilir miyim?"],["See you later","","Sonra görüşürüz"],["Good luck","","İyi şanslar"],["Never mind","","Boş ver"],["Watch out!","","Dikkat et!"]]
  }},
  mat:{name:"Matematik",title:"Matematik Arenası ➗",icon:"➗",color:"var(--purple)",oneway:true,ask:["Cevap kaç?","Hangisi?"],topics:{
-  "Çarpım tablosu":()=>gen(()=>{const a=rnd(2,10),b=rnd(2,10);return[`${a} × ${b}`,a*b]}),
-  "Bölme":()=>gen(()=>{const a=rnd(2,10),b=rnd(2,10);return[`${a*b} ÷ ${a}`,b]},9),
-  "Kareler":()=>gen(()=>{const n=rnd(2,15);return[`${n}²`,n*n]}),
-  "Büyük toplama":()=>gen(()=>{const a=rnd(100,899),b=rnd(10,99);return[`${a} + ${b}`,a+b]}),
-  "Çıkarma":()=>gen(()=>{const a=rnd(100,999),b=rnd(10,99);return[`${a} − ${b}`,a-b]}),
+  "Çarpım tablosu":()=>gen(()=>{const m=R(5,10,12),a=rnd(2,m),b=rnd(2,m);return[`${a} × ${b}`,a*b]}),
+  "Bölme":()=>gen(()=>{const m=R(5,10,12),a=rnd(2,m),b=rnd(2,m);return[`${a*b} ÷ ${a}`,b]},R(4,9,11)),
+  "Kareler":()=>gen(()=>{const n=rnd(2,R(10,15,25));return[`${n}²`,n*n]}),
+  "Büyük toplama":()=>gen(()=>{const a=rnd(R(10,100,1000),R(99,899,8999)),b=rnd(R(1,10,100),R(9,99,999));return[`${a} + ${b}`,a+b]}),
+  "Çıkarma":()=>gen(()=>{const a=rnd(R(20,100,1000),R(99,999,9999)),b=rnd(R(1,10,100),R(19,99,999));return[`${a} − ${b}`,a-b]}),
   "Romen rakamları":[["I","","1"],["V","","5"],["X","","10"],["L","","50"],["C","","100"],["D","","500"],["M","","1000"],["IV","","4"],["IX","","9"],["XIV","","14"],["XL","","40"],["XC","","90"],["MMXXVI","","2026"]],
-  "Zor çarpma":()=>gen(()=>{const a=rnd(11,20),b=rnd(2,9);return[`${a} × ${b}`,a*b]}),
-  "Küpler":()=>gen(()=>{const n=rnd(1,10);return[`${n}³`,n*n*n]},10),
-  "Yüzdeler":()=>gen(()=>{const p=[10,20,25,50,75][rnd(0,4)],b=20*rnd(1,20);return[`${b} sayısının %${p}'i`,b*p/100]}),
-  "Eksik sayı":()=>gen(()=>{const a=rnd(10,60),b=rnd(10,60);return[`□ + ${b} = ${a+b}`,a]}),
-  "İşlem önceliği":()=>gen(()=>{const a=rnd(1,20),b=rnd(2,9),c=rnd(2,9);return[`${a} + ${b} × ${c}`,a+b*c]}),
+  "Zor çarpma":()=>gen(()=>{const a=rnd(11,R(12,20,99)),b=rnd(2,R(5,9,9));return[`${a} × ${b}`,a*b]}),
+  "Küpler":()=>gen(()=>{const n=rnd(1,R(5,10,12));return[`${n}³`,n*n*n]},R(5,10,12)),
+  "Yüzdeler":()=>gen(()=>{const P=R([10,50],[10,20,25,50,75],[5,15,30,40,60,80,90]),p=P[rnd(0,P.length-1)],b=20*rnd(1,R(5,20,50));return[`${b} sayısının %${p}'i`,b*p/100]}),
+  "Eksik sayı":()=>gen(()=>{if(lv==2){const a=rnd(2,15),b=rnd(2,12);return[`□ × ${b} = ${a*b}`,a]}const m=R(10,60,0),a=rnd(1,m),b=rnd(1,m);return[`□ + ${b} = ${a+b}`,a]}),
+  "İşlem önceliği":()=>gen(()=>{if(lv==2){const a=rnd(5,12),b=rnd(5,12),c=rnd(2,5),d=rnd(2,5);return[`${a} × ${b} − ${c} × ${d}`,a*b-c*d]}const a=rnd(1,R(10,20,0)),b=rnd(2,R(5,9,0)),c=rnd(2,R(5,9,0));return[`${a} + ${b} × ${c}`,a+b*c]}),
   "Kesir → ondalık":[["1/2","","0,5"],["1/4","","0,25"],["3/4","","0,75"],["1/5","","0,2"],["2/5","","0,4"],["1/10","","0,1"],["3/10","","0,3"],["1/8","","0,125"],["1/20","","0,05"],["1/100","","0,01"]],
   "Geometri":[["Üçgenin iç açıları toplamı","","180°"],["Dörtgenin iç açıları toplamı","","360°"],["Dik açı","","90°"],["Beşgenin kenar sayısı","","5 kenar"],["Altıgenin kenar sayısı","","6 kenar"],["Sekizgenin kenar sayısı","","8 kenar"],["Kenarı 4 olan karenin alanı","","16"],["Kenarı 5 olan karenin çevresi","","20"],["Küpün yüz sayısı","","6 yüz"],["Küpün köşe sayısı","","8 köşe"]],
   "Zaman":[["1 saat","","60 dakika"],["1 dakika","","60 saniye"],["1 gün","","24 saat"],["1 hafta","","7 gün"],["1 yıl","","365 gün"],["Artık yıl","","366 gün"],["1 yıl kaç ay","","12 ay"],["Yarım saat","","30 dakika"],["Çeyrek saat","","15 dakika"],["1 asır","","100 yıl"]],
@@ -189,7 +201,7 @@ const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1])
 const S=()=>SUBJECTS[subj];
 const T=()=>S().topics[topic];
 const words=()=>{let t=T();if(t.w)t=t.w;return typeof t=="function"?t():t};
-function addStar(k){stars+=k;$("#stars").textContent="⭐ "+stars;store.set("ev-stars",stars)}
+function addStar(k){k*=LV().mult;stars+=k;$("#stars").textContent="⭐ "+stars;store.set("ev-stars",stars)}
 function speak(t,rate=.85){const lang=S().lang;if(!lang)return;try{const u=new SpeechSynthesisUtterance(t.replace("…",""));u.lang=lang;u.rate=rate;
   const v=speechSynthesis.getVoices().find(v=>v.lang.replace("_","-").startsWith(lang.slice(0,2)));if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
 $("#stars").textContent="⭐ "+stars;
@@ -199,21 +211,23 @@ function nav(){
   if(!s.lang&&mode=="dinle")mode="quiz";
   $("#subjects").innerHTML=Object.entries(SUBJECTS).map(([k,x])=>`<button class="subj" style="--c:${x.color}" aria-pressed="${k==subj}" data-s="${k}"><b>${x.icon}</b>${x.name}</button>`).join("");
   $("#topics").innerHTML=Object.keys(s.topics).map((k,j)=>`<button class="topic" aria-pressed="${k==topic}" data-t="${k}"><i>${j+1}</i>${k}</button>`).join("");
+  $("#levels").innerHTML=LEVELS.map((l,j)=>`<button class="lvl" style="--c:${l.color}" aria-pressed="${j==lv}" data-l="${j}">${l.name}<small>${l.info}</small></button>`).join("");
   $("#modes").innerHTML=Object.entries(MODES).filter(([k])=>k!="dinle"||s.lang).map(([k,m])=>`<button class="mode" aria-pressed="${k==mode}" data-m="${k}">${m}</button>`).join("");
 }
 document.addEventListener("click",e=>{
   const s=e.target.closest("[data-s]"),t=e.target.closest("[data-t]"),m=e.target.closest("[data-m]");
   if(s){subj=s.dataset.s;store.set("ev-subj",subj);topic=Object.keys(S().topics)[0];nav();run()}
   if(t){topic=t.dataset.t;nav();run()} if(m){mode=m.dataset.m;nav();run()}
+  const l=e.target.closest("[data-l]");if(l){lv=+l.dataset.l;store.set("ev-lv",lv);nav();run()}
 });
-function run(){({kart,esle,quiz,dinle:()=>quiz(true)})[mode]()}
+function run(){clearInterval(timer);({kart,esle,quiz,dinle:()=>quiz(true)})[mode]()}
 const speakBtns=(id="")=>S().lang?`<button class="btn" id="sp">🔊 Dinle</button><button class="btn" id="slow">🐢 Yavaş</button>`:"";
 
 function kart(){
   let W=shuffle(words()),i=0;
   const draw=()=>{const [f,say,b]=W[i];
     panel.innerHTML=`<div class="card" id="card"><div class="card-in">
-      <div class="face front"><div class="big">${f}</div>${say?`<div class="say">🗣️ ${say}</div>`:""}<div class="say">çevirmek için dokun</div></div>
+      <div class="face front"><div class="big">${f}</div>${say&&lv<2?`<div class="say">🗣️ ${say}</div>`:""}<div class="say">çevirmek için dokun</div></div>
       <div class="face back"><div class="big">${b}</div><div class="say">${f}</div></div></div></div>
       <div class="ctrl"><button class="btn alt" id="prev">◀ Önceki</button>${speakBtns()}<button class="btn alt" id="next">Sonraki ▶</button></div>
       <div class="count">${i+1} / ${W.length} · <button class="btn alt" id="mix">🔀 Karıştır</button></div>`;
@@ -226,7 +240,7 @@ function kart(){
 }
 
 function esle(){
-  const W=shuffle(words()).slice(0,6);let sel=null,left=W.length,miss=0;
+  const W=shuffle(words()).slice(0,LV().pairs);let sel=null,left=W.length,miss=0;
   const L=shuffle(W.map((w,i)=>[w[0],i])),R=shuffle(W.map((w,i)=>[w[2],i]));
   panel.innerHTML=`<p class="hint">Soldan birini seç, sağda eşini bul!</p>
     <div class="cols"><div>${L.map(([t,i])=>`<button class="tile" data-side="L" data-i="${i}">${t}</button>`).join("")}</div>
@@ -243,24 +257,28 @@ function esle(){
 }
 
 function quiz(listen=false){
-  const W=words(),Q=shuffle(W).slice(0,Math.min(8,W.length));let n=0,score=0;const s=S(),labels=T().ask||s.ask;
+  clearInterval(timer);
+  const W=words(),Q=shuffle(W).slice(0,Math.min(LV().q,W.length));let n=0,score=0;const s=S(),labels=T().ask||s.ask;
   const ask=()=>{
     if(n==Q.length){const st=score==Q.length?3:score>=Q.length*.6?2:score>0?1:0;addStar(st);
       panel.innerHTML=`<div class="end"><div class="big">${score} / ${Q.length}</div><div class="msg">${st==3?"Mükemmel! 🏆":st==2?"Çok iyi! 🎉":"Pratik yapalım, sen yaparsın! 💪"}</div><div>+${"⭐".repeat(st)||"0"}</div><button class="btn" id="again">Tekrar oyna</button></div>`;
       $("#again").onclick=()=>quiz(listen);return}
     const w=Q[n],dir=listen?"listen":(s.oneway||Math.random()<.5)?"f":"b",key=dir=="b"?0:2;
-    const opts=shuffle([w,...shuffle(W.filter(x=>x!==w&&x[key]!==w[key])).slice(0,3)]);
-    panel.innerHTML=`<div class="bar"><b style="width:${n/Q.length*100}%"></b></div>
+    const opts=shuffle([w,...shuffle(W.filter(x=>x!==w&&x[key]!==w[key])).slice(0,LV().opts-1)]);
+    panel.innerHTML=`<div class="bar"><b style="width:${n/Q.length*100}%"></b></div>${LV().time?`<div class="timer" id="tm">⏱️ ${LV().time}</div>`:""}
       ${dir=="listen"?`<div class="ctrl" style="margin:0 0 10px"><button class="btn big-btn" id="sp">🔊 Tekrar dinle</button><button class="btn alt big-btn" id="slow">🐢 Yavaş dinle</button></div><p class="hint">Dinle! Ne dedi? İstediğin kadar tekrar dinleyebilirsin.</p>`
         :`<div class="q">${dir=="f"?w[0]:w[2]}</div><p class="hint">${dir=="f"?labels[0]:labels[1]}</p>`}
       <div class="opts">${opts.map(o=>`<button class="opt" data-ok="${o===w}">${o[key]}</button>`).join("")}</div><div class="msg" id="msg"></div>`;
     if(dir=="listen"){$("#sp").onclick=()=>speak(w[0]);$("#slow").onclick=()=>speak(w[0],.45);setTimeout(()=>speak(w[0]),250)}
-    panel.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    const answer=b=>{clearInterval(timer);
       panel.querySelectorAll(".opt").forEach(x=>{x.disabled=true;if(x.dataset.ok=="true")x.classList.add("right")});
-      if(b.dataset.ok=="true"){score++;$("#msg").textContent="Doğru! ✅ "+w[0]+" = "+w[2]}
+      if(!b)$("#msg").textContent="Süre bitti! ⏰ "+w[0]+" = "+w[2];
+      else if(b.dataset.ok=="true"){score++;$("#msg").textContent="Doğru! ✅ "+w[0]+" = "+w[2]}
       else{b.classList.add("wrong");$("#msg").textContent="Yanlış ❌ "+w[0]+" = "+w[2]}
-      speak(w[0]);n++;setTimeout(ask,1600);
-    });
+      speak(w[0]);n++;timer=setTimeout(ask,1600);
+    };
+    panel.querySelectorAll(".opt").forEach(b=>b.onclick=()=>answer(b));
+    if(LV().time){let left=LV().time;timer=setInterval(()=>{left--;const tm=$("#tm");if(tm)tm.textContent="⏱️ "+left;if(left<=0)answer(null)},1000)}
   };ask();
 }
 nav();run();
