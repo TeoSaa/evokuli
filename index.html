@@ -162,13 +162,14 @@ function run(){({kart,esle,quiz,dinle:()=>quiz(true)})[mode]()}
 const speakBtns=(id="")=>S().lang?`<button class="btn" id="sp">🔊 Dinle</button><button class="btn" id="slow">🐢 Yavaş</button>`:"";
 
 function kart(){
-  const W=words();let i=0;
+  let W=shuffle(words()),i=0;
   const draw=()=>{const [f,say,b]=W[i];
     panel.innerHTML=`<div class="card" id="card"><div class="card-in">
       <div class="face front"><div class="big">${f}</div>${say?`<div class="say">🗣️ ${say}</div>`:""}<div class="say">çevirmek için dokun</div></div>
       <div class="face back"><div class="big">${b}</div><div class="say">${f}</div></div></div></div>
       <div class="ctrl"><button class="btn alt" id="prev">◀ Önceki</button>${speakBtns()}<button class="btn alt" id="next">Sonraki ▶</button></div>
-      <div class="count">${i+1} / ${W.length}</div>`;
+      <div class="count">${i+1} / ${W.length} · <button class="btn alt" id="mix">🔀 Karıştır</button></div>`;
+    $("#mix").onclick=()=>{W=shuffle(W);i=0;draw()};
     $("#card").onclick=()=>$("#card").classList.toggle("flip");
     if(S().lang){$("#sp").onclick=()=>speak(f);$("#slow").onclick=()=>speak(f,.45)}
     $("#prev").onclick=()=>{i=(i-1+W.length)%W.length;draw()};
